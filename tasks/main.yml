@@ -1,5 +1,6 @@
 # tasks file for role pve
 # 09-12-2023: André
+# 19-01-2026: Update to trixie as per https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_13_Trixie
 ---
 - name: Import inet6 tasks for the pve-role
   ansible.builtin.import_tasks: inet6-manual.yml
@@ -22,7 +23,7 @@
     uris: "{{ pve_repository }}"
     suites: "{{ ansible_distribution_release }}"
     components: "{{ pve_components }}"
-    signed_by: https://enterprise.proxmox.com/debian/proxmox-release-{{ ansible_distribution_release }}.gpg
+    signed_by: https://enterprise.proxmox.com/debian/proxmox-archive-keyring-{{ ansible_distribution_release }}.gpg
 
 - name: Remove os-prober package
   ansible.builtin.apt:
@@ -101,6 +102,10 @@
 - name: Block to correct for no active subscription
   when: "'pve-no-subscription' in pve_components" # bugfix 04-2024: repository_line no longer exists
   block:
+    - name: Remove Enterprise repository using new format
+      ansible.builtin.deb822_repository:
+        name: pve-enterprise
+        state: absent
     - name: Remove automatically installed PVE Enterprise repo configuration
       ansible.builtin.apt_repository:
         repo: "{{ item }}"
@@ -114,7 +119,7 @@
       ansible.builtin.lineinfile:
         path: /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
         line: "        orig_cmd(); return;"
-        insertafter: "^\\s+checked_command: function\\(orig_cmd\\) {$"
+        insertafter: "^\\s+checked_command: function\\s?\\(orig_cmd\\) {$"
         firstmatch: true
         backup: true
       when:

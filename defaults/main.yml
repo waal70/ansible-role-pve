@@ -13,3 +13,13 @@ pve_run_system_upgrades: false
 pve_run_proxmox_upgrades: true
 pve_watchdog: none
 pve_slim: true
+
+api_user: "root@pam"
+api_token_id: "ansible"
+api_token: "inputtokenhere"
+authstring: "PVEAPIToken={{ api_user }}!{{ api_token_id }}={{ api_token }}"
+proxmox_api: "https://{{ ansible_hostname }}:8006/api2/json/"
+template_vm: "default-debian"
+default_bridge: "vmbr0"
+vlan_base: "172.16."
+vlan_base_netmask: "255.255.255.0"

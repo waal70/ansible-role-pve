@@ -1,0 +1,32 @@
+---
+- name: "Create a clone"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    clone: "{{ template_vm }}"
+    full: true
+    name: "{{ vmname }}"
+    timeout: 500
+  register: clone_result
+
+- name: "Debug clone result"
+  ansible.builtin.debug:
+    var: clone_result
+
+- name: "Set fact for programmatic VLAN id, will be retrieved later from json"
+  ansible.builtin.set_fact:
+    newvlan: "99"
+
+- name: "Edit the via API to force new VLAN and Ansible module does not work"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
+    method: PUT
+    headers:
+      Authorization: "{{ authstring }}"
+    body_format: json
+    body:
+      net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }}"
+    validate_certs: false

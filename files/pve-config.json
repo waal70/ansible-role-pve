@@ -1,0 +1,10 @@
+[
+    {
+        "name": "eersteclone",
+        "vlan": "29"
+    },
+    {
+        "name": "heleanderenaamenvlan",
+        "vlan": "99"
+    }
+]

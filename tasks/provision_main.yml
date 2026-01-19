@@ -1,0 +1,126 @@
+---
+- name: Include vaulted password file
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ lookup('env', 'PRIVATE_REPO') | default('~') }}/ansible-vault/{{ ansible_role_name }}-vars.yml"
+      skip: true
+
+- name: "Read the configuration file"
+  ansible.builtin.set_fact:
+    pve_config: "{{ lookup('file', 'pve-config.json') | from_json }}"
+
+- name: Display all VLAN names
+  ansible.builtin.set_fact:
+    vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | join(' ') }}"
+
+- name: "Debug the file read"
+  ansible.builtin.debug:
+    var: pve_config
+
+- name: "To manipulate proxmox, we will need the python proxmoxer module"
+  ansible.builtin.apt:
+    name:
+      - python3-proxmoxer
+    state: present
+
+- name: "List existing nodes in the proxmox cluster"
+  community.proxmox.proxmox_node_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+  register: proxmox_nodes
+
+- name: "Get information on the current network config for this node"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
+    method: GET
+    headers:
+      Authorization: "{{ authstring }}"
+    validate_certs: false
+  register: networkconfig
+
+# - name: "Debug getnetwork response"
+#   ansible.builtin.debug:
+#     var: networkconfig
+
+- name: "Set facts, including information about (any) current bridges"
+  ansible.builtin.set_fact:
+    node_bridges: "{{ networkconfig.json | community.general.json_query('data[?type==`bridge`].iface') }}"
+    node_physical: "{{ networkconfig.json | community.general.json_query('data[?type==`eth`].iface') | first }}"
+
+- name: "Look for the presence of the template VM on the node, called: {{ template_vm }}"
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ template_vm }}"
+  register: template_info
+
+- name: "Set fact for presence of default VM"
+  ansible.builtin.set_fact:
+    template_present: "{{ template_info.proxmox_vms[0].template | default(false) }}"
+
+- name: "Block for default bridge. Move to separate file later"
+  when: node_bridges | length == 0
+  block:
+    - name: "Inform the user about the state of the default bridge"
+      ansible.builtin.debug:
+        msg: "No default bridge found. Creating one for ip: {{ ansible_default_ipv4.address }}"
+
+    - name: "Create default bridge"
+      ansible.builtin.uri:
+        url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
+        method: POST
+        headers:
+          Authorization: "{{ authstring }}"
+        body_format: json
+        body:
+          iface: "{{ default_bridge }}"
+          type: "bridge"
+          autostart: true
+          address: "{{ ansible_default_ipv4.address }}"
+          netmask: "{{ ansible_default_ipv4.netmask }}"
+          gateway: "{{ ansible_default_ipv4.gateway }}"
+          bridge_ports: "{{ node_physical }}"
+          bridge_vlan_aware: true
+          bridge_vids: "{{ vlans }}"
+          comments: "Ansible generated default bridge"
+        validate_certs: false
+
+    - name: "Create a further bridge for each VLAN found"
+      ansible.builtin.include_tasks: provision_VLAN_bridges.yml
+      vars:
+        vlan_id: "{{ item }}"
+      loop: "{{ pve_config | community.general.json_query('[*].vlan') }}"
+
+    - name: "Apply the new network configuration by rebooting"
+      ansible.builtin.reboot:
+
+- name: "Include the tasks that will create a template VM, but only if none were found"
+  ansible.builtin.include_tasks: provision_templatevm.yml
+  when: not template_present
+
+- name: "Now storage, back to Ansible modules"
+  community.proxmox.proxmox_storage_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+  register: proxmox_storages
+
+- name: Debug
+  ansible.builtin.debug:
+    var: proxmox_storages
+
+- name: "Include tasks to create clones for all defined VMs"
+  ansible.builtin.include_tasks: provision_VMs.yml
+  vars:
+    vmname: "{{ item.name }}"
+    vmvlan: "{{ item.vlan }}"
+  with_items:
+    - "{{ pve_config }}"

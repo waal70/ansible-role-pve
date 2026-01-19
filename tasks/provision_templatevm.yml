@@ -1,0 +1,69 @@
+---
+- name: "Now create the template VM on the local storage if it does not exist"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ template_vm }}"
+    description: "template debian server"
+    scsi:
+      scsi0: 'local:8,format=qcow2'
+    scsihw: "virtio-scsi-single"
+    net:
+      net0: 'model=virtio,bridge={{ default_bridge }},tag=29'
+    memory: 2048
+    cores: 2
+    sockets: 1
+    agent: true
+    state: present
+
+- name: "Start it to have it populate and do tftp-based install"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ template_vm }}"
+    state: started
+  register: start_kvm
+
+- name: Retrieve information about specific VM, allowing up to 10 minutes for creation
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    network: true
+    name: "{{ template_vm }}"
+  register: info_ret
+  retries: 20
+  delay: 30
+  until: not info_ret.failed
+
+- name: Debug to show the network interface is up.
+  ansible.builtin.debug:
+    var: info_ret.proxmox_vms[0]
+
+- name: Stop VM
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ template_vm }}"
+    state: stopped
+
+- name: "Make this VM into a template for all future Debian-based VMs"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ template_vm }}"
+    state: template

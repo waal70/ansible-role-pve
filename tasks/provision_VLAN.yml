@@ -1,5 +1,10 @@
 ---
 # Received vlan_id as variable containing the VLAN id
+
+- name: "Set desired iface name into fact"
+  ansible.builtin.set_fact:
+    iface_name: "{{ default_bridge }}.{{ vlan_id }}"
+
 - name: "Create interface for a specific VLAN"
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
@@ -8,10 +13,11 @@
       Authorization: "{{ authstring }}"
     body_format: json
     body:
-      iface: "{{ default_bridge }}.{{ vlan_id }}"
+      iface: "{{ iface_name }}"
       type: "vlan"
       autostart: true
       address: "{{ vlan_base }}{{ vlan_id }}.0"
       netmask: "{{ vlan_base_netmask }}"
       comments: "Ansible generated VLAN {{ vlan_id }}"
     validate_certs: false
+  when: "iface_name not in node_vlans"

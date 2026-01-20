@@ -6,5 +6,10 @@
     {
         "name": "heleanderenaamenvlan",
         "vlan": "99"
+    },
+    {
+        "name": "testvanandre",
+        "vlan": "11",
+        "nogeenproperty": "even negeren"
     }
 ]

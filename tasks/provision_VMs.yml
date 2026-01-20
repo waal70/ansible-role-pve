@@ -11,14 +11,7 @@
     name: "{{ vmname }}"
     timeout: 500
   register: clone_result
-
-- name: "Debug clone result"
-  ansible.builtin.debug:
-    var: clone_result
-
-- name: "Set fact for programmatic VLAN id, will be retrieved later from json"
-  ansible.builtin.set_fact:
-    newvlan: "99"
+  when: vmname not in active_vm_names
 
 - name: "Edit the via API to force new VLAN and Ansible module does not work"
   ansible.builtin.uri:
@@ -30,3 +23,4 @@
     body:
       net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }}"
     validate_certs: false
+  when: vmname not in active_vm_names

@@ -15,10 +15,6 @@
   ansible.builtin.set_fact:
     vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | join(' ') }}"
 
-- name: "Debug the file read"
-  ansible.builtin.debug:
-    var: pve_config
-
 - name: "To manipulate proxmox, we will need the python proxmoxer module"
   ansible.builtin.apt:
     name:
@@ -92,8 +88,8 @@
           comments: "Ansible generated default bridge"
         validate_certs: false
 
-    - name: "Create a further bridge for each VLAN found"
-      ansible.builtin.include_tasks: provision_VLAN_bridges.yml
+    - name: "Create a VLAN for each id found"
+      ansible.builtin.include_tasks: provision_VLAN.yml
       vars:
         vlan_id: "{{ item }}"
       loop: "{{ pve_config | community.general.json_query('[*].vlan') }}"
@@ -116,6 +112,19 @@
 - name: Debug
   ansible.builtin.debug:
     var: proxmox_storages
+
+- name: "Retrieve information on all VMs in Proxmox"
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+  register: all_vm_info
+
+- name: "Make a list out of all found vm names"
+  ansible.builtin.set_fact:
+    active_vm_names: "{{ all_vm_info.proxmox_vms | map(attribute='name') | list }}"
 
 - name: "Include tasks to create clones for all defined VMs"
   ansible.builtin.include_tasks: provision_VMs.yml

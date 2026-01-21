@@ -18,12 +18,12 @@
       bridge_vids: "{{ requested_vlans }}"
       comments: "Ansible generated default bridge"
     validate_certs: false
-  register: create_bridge
   when: node_default_bridge | length == 0
 
 - name: "If there was already a default bridge, ensure all VLANs needed are there"
   ansible.builtin.set_fact:
     bridge_needs_update: "{{ (node_default_bridge[0].bridge_vids != requested_vlans) | default(true) }}"
+  when: node_default_bridge | length != 0
 
 - name: "Update default bridge"
   ansible.builtin.uri:
@@ -46,9 +46,6 @@
   vars:
     vlan_id: "{{ item }}"
   loop: "{{ pve_config | community.general.json_query('[*].vlan') }}"
-
-- name: Stop
-  ansible.builtin.meta: end_role
 
 - name: "Apply the new network configuration by rebooting"
   ansible.builtin.reboot:

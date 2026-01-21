@@ -21,5 +21,6 @@ authstring: "PVEAPIToken={{ api_user }}!{{ api_token_id }}={{ api_token }}"
 proxmox_api: "https://{{ ansible_hostname }}:8006/api2/json/"
 template_vm: "default-debian"
 default_bridge: "vmbr0"
+bridge_needs_update: false
 vlan_base: "172.16."
 vlan_base_netmask: "255.255.255.0"

@@ -1,0 +1,33 @@
+---
+- name: Test if API token for ansible_user exists
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      pveum user token list {{ api_user }} | grep {{ api_token_id }}
+    executable: /bin/bash
+  register: tokenlist
+  failed_when: false
+  changed_when: tokenlist.rc == 0
+
+- name: Delete existing token
+  ansible.builtin.command: "pveum user token delete {{ api_user }} {{ api_token_id }}"
+  register: tokendelete
+  when: tokenlist.rc == 0
+  changed_when: tokendelete.rc == 0
+
+- name: Create new Proxmox API token for ansible_user
+  ansible.builtin.command: "pveum user token add {{ api_user }} {{ api_token_id }} --privsep=no --comment='Managed by Ansible' --output-format json"
+  register: api_token_response
+  changed_when: api_token_response.rc == 0
+
+- name: Set response in fact
+  ansible.builtin.set_fact:
+    token_response: "{{ api_token_response.stdout | from_json }}"
+
+- name: Debug encrypted token value (for verification)
+  ansible.builtin.debug:
+    var: token_response
+
+- name: Set the token in fact for this session
+  ansible.builtin.set_fact:
+    api_token: "{{ token_response.value }}"

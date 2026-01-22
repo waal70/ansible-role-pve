@@ -13,7 +13,7 @@
 
 - name: Set the requested VLANs into a fact
   ansible.builtin.set_fact:
-    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | sort | join(' ') }}"
+    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | unique | sort | join(' ') }}"
 
 - name: "To manipulate proxmox, we will need the python proxmoxer module"
   ansible.builtin.apt:
@@ -98,5 +98,7 @@
   vars:
     vmname: "{{ item.name }}"
     vmvlan: "{{ item.vlan }}"
+    vmdisk: "{{ item.disksize | default(8) }}"
+    vmmac: "{{ item.mac | default(omit) }}"
   with_items:
     - "{{ pve_config }}"

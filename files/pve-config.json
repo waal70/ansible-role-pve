@@ -5,11 +5,17 @@
     },
     {
         "name": "heleanderenaamenvlan",
+        "vlan": "99",
+        "disksize": "9"
+    },
+    {
+        "name": "ookinvlan99",
         "vlan": "99"
     },
     {
         "name": "testvanandre",
         "vlan": "11",
+        "mac": "BC:24:11:CF:A0:9E",
         "nogeenproperty": "even negeren"
     }
 ]

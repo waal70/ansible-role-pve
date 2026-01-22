@@ -13,6 +13,15 @@
   register: clone_result
   when: vmname not in active_vm_names
 
+- name: "Create string fragment for possible mac-address"
+  ansible.builtin.set_fact:
+    macstring: ",macaddr={{ vmmac }}"
+  when: vmmac != omit
+
+- name: Debug
+  ansible.builtin.debug:
+    msg: "vmmac is {{ vmmac }}, macstring is {{ macstring | default('woops') }}"
+
 - name: "Edit the via API to force new VLAN and Ansible module does not work"
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
@@ -21,6 +30,29 @@
       Authorization: "{{ authstring }}"
     body_format: json
     body:
-      net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }}"
+      net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }}{{ macstring | default(omit) }}"
     validate_certs: false
   when: vmname not in active_vm_names
+
+- name: "Retrieve info for this VM"
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    name: "{{ vmname }}"
+  register: clone_info
+
+- name: "Edit via API if disk needs resizing"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_info.proxmox_vms[0].vmid }}/resize"
+    method: PUT
+    headers:
+      Authorization: "{{ authstring }}"
+    body_format: json
+    body:
+      disk: scsi0
+      size: "{{ vmdisk }}G"
+    validate_certs: false
+  when: (clone_info.proxmox_vms[0].maxdisk | int) < (vmdisk | int * 1024 * 1024 * 1024)

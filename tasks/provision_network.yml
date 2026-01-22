@@ -45,7 +45,8 @@
   ansible.builtin.include_tasks: provision_VLAN.yml
   vars:
     vlan_id: "{{ item }}"
-  loop: "{{ pve_config | community.general.json_query('[*].vlan') }}"
+  loop: "{{ pve_config | community.general.json_query('[*].vlan') | unique }}"
 
 - name: "Apply the new network configuration by rebooting"
   ansible.builtin.reboot:
+  when: bridge_needs_update or (node_default_bridge | length == 0)

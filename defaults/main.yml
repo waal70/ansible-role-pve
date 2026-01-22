@@ -24,3 +24,10 @@ default_bridge: "vmbr0"
 bridge_needs_update: false
 vlan_base: "172.16."
 vlan_base_netmask: "255.255.255.0"
+
+# Some nice prefixes to choose from:
+# Proxmox: "bc:24:11"
+# VMWare: "00:50:56"
+# Philips: "e8:c1:d7"
+# NSA: "00:20:91"
+mac_prefix: "bc:24:11"

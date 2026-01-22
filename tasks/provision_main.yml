@@ -99,6 +99,6 @@
     vmname: "{{ item.name }}"
     vmvlan: "{{ item.vlan }}"
     vmdisk: "{{ item.disksize | default(8) }}"
-    vmmac: "{{ item.mac | default(omit) }}"
+    vmmac: "{{ item.mac | default(mac_prefix | community.general.random_mac(seed=item.name)) }}"
   with_items:
     - "{{ pve_config }}"

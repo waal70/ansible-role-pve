@@ -23,6 +23,7 @@
   ansible.builtin.wait_for:
     timeout: 5
   delegate_to: localhost
+  become: false
 
 - name: "Start it to have it populate and do tftp-based install"
   community.proxmox.proxmox_kvm:

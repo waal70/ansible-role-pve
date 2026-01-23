@@ -48,7 +48,7 @@
   register: info_ret
   retries: 20
   delay: 30
-  until: not info_ret.failed
+  until: not info_ret.failed and (info_ret.proxmox_vms | length > 0)
 
 - name: Get the VM's IP into a variable
   ansible.builtin.set_fact:

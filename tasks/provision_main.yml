@@ -97,8 +97,9 @@
   ansible.builtin.include_tasks: provision_VMs.yml
   vars:
     vmname: "{{ item.name }}"
-    vmvlan: "{{ item.vlan }}"
+    vmvlan: "{{ item.vlan | default(omit) }}"
     vmdisk: "{{ item.disksize | default(8) }}"
     vmmac: "{{ item.mac | default(mac_prefix | community.general.random_mac(seed=item.name)) }}"
+    vmtags: "{{ item.tags | default(['notags']) }}"
   with_items:
     - "{{ pve_config }}"

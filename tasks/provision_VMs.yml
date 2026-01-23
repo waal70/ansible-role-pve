@@ -17,7 +17,7 @@
   ansible.builtin.debug:
     msg: "Assigned MAC address for {{ vmname }} is: {{ vmmac | lower }}"
 
-- name: "Edit the via API to force new VLAN and Ansible module does not work"
+- name: "Edit the via API to set network settings"
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
     method: PUT
@@ -25,9 +25,24 @@
       Authorization: "{{ authstring }}"
     body_format: json
     body:
-      net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }},macaddr={{ vmmac | lower }}"
+      net0: "model=virtio,bridge={{ default_bridge }},macaddr={{ vmmac | lower }}"
+      tags: "{{ vmtags }}"
     validate_certs: false
-  when: vmname not in active_vm_names
+  when: vmname not in active_vm_names and (vmvlan == omit)
+
+- name: "Edit the via API to set network settings, including VLAN"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
+    method: PUT
+    headers:
+      Authorization: "{{ authstring }}"
+    body_format: json
+    body:
+      net0: "model=virtio,bridge={{ default_bridge }},tags={{ vmvlan }},macaddr={{ vmmac | lower }}"
+      tags: "{{ vmtags }}"
+    validate_certs: false
+  when: vmname not in active_vm_names and (vmvlan != omit)
+
 
 - name: "Retrieve info for this VM"
   community.proxmox.proxmox_vm_info:
@@ -54,3 +69,13 @@
       size: "{{ vmdisk }}G"
     validate_certs: false
   when: (clone_info.proxmox_vms[0].maxdisk | int) < (vmdisk | int * 1024 * 1024 * 1024)
+
+- name: "Start the cloned VM"
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ ansible_hostname }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_hostname }}"
+    vmid: "{{ clone_info.proxmox_vms[0].vmid }}"
+    state: started

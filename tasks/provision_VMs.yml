@@ -9,6 +9,7 @@
     clone: "{{ template_vm }}"
     full: true
     name: "{{ vmname }}"
+    description: "{{ vmnotes }}"
     timeout: 500
   register: clone_result
   when: vmname not in active_vm_names

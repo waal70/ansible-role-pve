@@ -3,6 +3,7 @@
         "name": "testvanandre",
         "mac": "BC:24:11:CF:A0:9E",
         "nogeenproperty": "even negeren",
-        "tags": ["activedirectory", "dns", "tftp"]
+        "tags": ["activedirectory", "dns"],
+        "notes": "This is intended to be a Samba-based Active Directory"
     }
 ]

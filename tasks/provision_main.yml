@@ -97,6 +97,7 @@
   ansible.builtin.include_tasks: provision_VMs.yml
   vars:
     vmname: "{{ item.name }}"
+    vmnotes: "{{ item.notes | default('No description provided, cloned') }}"
     vmvlan: "{{ item.vlan | default(omit) }}"
     vmdisk: "{{ item.disksize | default(8) }}"
     vmmac: "{{ item.mac | default(mac_prefix | community.general.random_mac(seed=item.name)) }}"

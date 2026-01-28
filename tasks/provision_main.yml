@@ -23,7 +23,7 @@
 
 - name: "List existing nodes in the proxmox cluster"
   community.proxmox.proxmox_node_info:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
@@ -31,7 +31,7 @@
 
 - name: "Get information on the current network config for this node"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/network"
     method: GET
     headers:
       Authorization: "{{ authstring }}"
@@ -49,11 +49,11 @@
 
 - name: "Look for the presence of the template VM on the node, called: {{ template_vm }}"
   community.proxmox.proxmox_vm_info:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
-    node: "{{ ansible_hostname }}"
+    node: "{{ ansible_facts['hostname'] }}"
     name: "{{ template_vm }}"
   register: template_info
 
@@ -70,7 +70,7 @@
 
 - name: "Now storage, back to Ansible modules"
   community.proxmox.proxmox_storage_info:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
@@ -82,11 +82,11 @@
 
 - name: "Retrieve information on all VMs in Proxmox"
   community.proxmox.proxmox_vm_info:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
-    node: "{{ ansible_hostname }}"
+    node: "{{ ansible_facts['hostname'] }}"
   register: all_vm_info
 
 - name: "Make a list out of all found vm names"

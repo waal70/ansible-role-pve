@@ -7,7 +7,7 @@
 
 - name: "Create interface for a specific VLAN"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/network"
     method: POST
     headers:
       Authorization: "{{ authstring }}"

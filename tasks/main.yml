@@ -24,9 +24,9 @@
         name: proxmox
         types: [deb]
         uris: "{{ pve_repository }}"
-        suites: "{{ ansible_distribution_release }}"
+        suites: "{{ ansible_facts['distribution_release'] }}"
         components: "{{ pve_components }}"
-        signed_by: https://enterprise.proxmox.com/debian/proxmox-archive-keyring-{{ ansible_distribution_release }}.gpg
+        signed_by: https://enterprise.proxmox.com/debian/proxmox-archive-keyring-{{ ansible_facts['distribution_release'] }}.gpg
 
     - name: Remove os-prober package
       ansible.builtin.apt:
@@ -115,8 +115,8 @@
             filename: pve-enterprise
             state: absent
           with_items:
-            - deb https://enterprise.proxmox.com/debian {{ ansible_distribution_release }} pve-enterprise
-            - deb https://enterprise.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-enterprise
+            - deb https://enterprise.proxmox.com/debian {{ ansible_facts['distribution_release'] }} pve-enterprise
+            - deb https://enterprise.proxmox.com/debian/pve {{ ansible_facts['distribution_release'] }} pve-enterprise
 
         - name: Remove subscription check wrapper function in web UI
           ansible.builtin.lineinfile:

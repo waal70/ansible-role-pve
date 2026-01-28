@@ -1,11 +1,11 @@
 ---
 - name: "Create a clone"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
-    node: "{{ ansible_hostname }}"
+    node: "{{ ansible_facts['hostname'] }}"
     clone: "{{ template_vm }}"
     full: true
     name: "{{ vmname }}"
@@ -20,7 +20,7 @@
 
 - name: "Edit the via API to set network settings"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/qemu/{{ clone_result.vmid }}/config"
     method: PUT
     headers:
       Authorization: "{{ authstring }}"
@@ -33,7 +33,7 @@
 
 - name: "Edit the via API to set network settings, including VLAN"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_result.vmid }}/config"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/qemu/{{ clone_result.vmid }}/config"
     method: PUT
     headers:
       Authorization: "{{ authstring }}"
@@ -47,11 +47,11 @@
 
 - name: "Retrieve info for this VM"
   community.proxmox.proxmox_vm_info:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
-    node: "{{ ansible_hostname }}"
+    node: "{{ ansible_facts['hostname'] }}"
     name: "{{ vmname }}"
   register: clone_info
   retries: 5
@@ -60,7 +60,7 @@
 
 - name: "Edit via API if disk needs resizing"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/qemu/{{ clone_info.proxmox_vms[0].vmid }}/resize"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/qemu/{{ clone_info.proxmox_vms[0].vmid }}/resize"
     method: PUT
     headers:
       Authorization: "{{ authstring }}"
@@ -73,10 +73,10 @@
 
 - name: "Start the cloned VM"
   community.proxmox.proxmox_kvm:
-    api_host: "{{ ansible_hostname }}"
+    api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
-    node: "{{ ansible_hostname }}"
+    node: "{{ ansible_facts['hostname'] }}"
     vmid: "{{ clone_info.proxmox_vms[0].vmid }}"
     state: started

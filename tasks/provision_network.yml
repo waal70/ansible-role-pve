@@ -1,7 +1,7 @@
 ---
 - name: "Create default bridge"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/network"
     method: POST
     headers:
       Authorization: "{{ authstring }}"
@@ -10,9 +10,9 @@
       iface: "{{ default_bridge }}"
       type: "bridge"
       autostart: true
-      address: "{{ ansible_default_ipv4.address }}"
-      netmask: "{{ ansible_default_ipv4.netmask }}"
-      gateway: "{{ ansible_default_ipv4.gateway }}"
+      address: "{{ ansible_facts['default_ipv4'].address }}"
+      netmask: "{{ ansible_facts['default_ipv4'].netmask }}"
+      gateway: "{{ ansible_facts['default_ipv4'].gateway }}"
       bridge_ports: "{{ node_physical }}"
       bridge_vlan_aware: true
       bridge_vids: "{{ requested_vlans }}"
@@ -32,7 +32,7 @@
 
 - name: "Update default bridge"
   ansible.builtin.uri:
-    url: "{{ proxmox_api }}nodes/{{ ansible_hostname }}/network/{{ default_bridge }}"
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/network/{{ default_bridge }}"
     method: PUT
     headers:
       Authorization: "{{ authstring }}"

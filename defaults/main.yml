@@ -18,7 +18,7 @@ api_user: "root@pam"
 api_token_id: "ansible"
 api_token: "inputtokenhere"
 authstring: "PVEAPIToken={{ api_user }}!{{ api_token_id }}={{ api_token }}"
-proxmox_api: "https://{{ ansible_hostname }}:8006/api2/json/"
+proxmox_api: "https://{{ ansible_facts['hostname'] }}:8006/api2/json/"
 template_vm: "default-debian"
 default_bridge: "vmbr0"
 bridge_needs_update: false

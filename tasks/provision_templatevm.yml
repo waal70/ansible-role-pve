@@ -17,6 +17,7 @@
     cores: 2
     sockets: 1
     agent: true
+    onboot: true
     state: present
 
 - name: "Sleep for 5 seconds to give PVE time to process VM creation"

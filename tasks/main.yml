@@ -89,7 +89,7 @@
 
     - name: Update grub
       ansible.builtin.command: update-grub
-      changed_when: true
+      changed_when: false
 
     - name: Reduce rrdcached writes
       ansible.builtin.lineinfile:

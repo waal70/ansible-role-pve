@@ -111,5 +111,6 @@
     vmdisk: "{{ item.disksize | default(8) }}"
     vmmac: "{{ item.mac | default(mac_prefix | community.general.random_mac(seed=item.name)) }}"
     vmtags: "{{ item.tags | default(['notags']) }}"
+    vmmemory: "{{ item.memory | default(2048) }}"
   with_items:
     - "{{ pve_config }}"

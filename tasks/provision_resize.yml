@@ -1,0 +1,117 @@
+---
+- name: "Retrieve information about the newly created VM, allowing up to 10 minutes for full provision"
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_facts['hostname'] }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_facts['hostname'] }}"
+    network: true
+    vmid: "{{ clone_info.proxmox_vms[0].vmid }}"
+  register: info_ret
+  retries: 20
+  delay: 5
+  until: not info_ret.failed and (info_ret.proxmox_vms | length > 0)
+
+- name: Get the VM's IP into a variable
+  ansible.builtin.set_fact:
+    vm_ip_info: "{{ info_ret | community.general.json_query(_query) | flatten | first }}"
+  vars:
+    _query: 'proxmox_vms[*].network[?name!=`lo`]."ip-addresses"[*]."ip-address"'
+
+- name: "Temporarily add the template VM to the ansible inventory. Use the install-key"
+  ansible.builtin.add_host:
+    hostname: "{{ vm_ip_info }}"
+    ansible_ssh_private_key_file: "{{ install_key }}"
+
+- name: "Ensure parted is present for disk manipulation"
+  ansible.builtin.apt:
+    name:
+      - parted
+      - cloud-guest-utils # for growpart
+    state: present
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Read device information (always use unit when probing)"
+  community.general.parted:
+    device: /dev/sda
+    unit: MiB
+  register: sda_info
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Turn off swap in order to remove it" # noqa: ignore-errors
+  ansible.builtin.command:
+    cmd: swapoff /dev/sda{{ _item.num }}
+  with_items: "{{ sda_info.partitions }}"
+  loop_control:
+    loop_var: _item
+  when: _item.flags[0] == "swap"
+  delegate_to: "{{ vm_ip_info }}"
+  ignore_errors: true
+  changed_when: true
+
+- name: "(Temporarily) Remove all partitions except boot from disk"
+  community.general.parted:
+    device: /dev/sda
+    number: "{{ item_.num }}"
+    state: absent
+  with_items: "{{ sda_info.partitions }}"
+  loop_control:
+    loop_var: item_
+  when: item_.num != 1
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Create a new swap partition at the end of the disk"
+  community.general.parted:
+    device: /dev/sda
+    number: 2
+    state: present
+    flags: [swap]
+    fs_type: linux-swap
+    part_start: -1GiB
+    unit: "MiB"
+  register: new_swap
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Set a fact that holds the new end for the primary partition"
+  ansible.builtin.set_fact:
+    new_end: "{{ swappie.begin - 1 }}"
+  with_items: "{{ new_swap.partitions }}"
+  loop_control:
+    loop_var: swappie
+  when: swappie.flags[0] == "swap"
+
+- name: Format swap
+  community.general.filesystem:
+    fstype: swap
+    dev: /dev/sda2
+    state: present
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Turn swap back on"
+  ansible.builtin.command:
+    cmd: swapon /dev/sda2
+  changed_when: true
+  delegate_to: "{{ vm_ip_info }}"
+
+- name: "Grow the partition"
+  ansible.builtin.command:
+    cmd: growpart /dev/sda 1
+  delegate_to: "{{ vm_ip_info }}"
+  changed_when: true
+
+# - name: "Resize the primary partition, using shell because reasons"
+#   ansible.builtin.shell:
+#     cmd: |
+#       set -o pipefail
+#       echo yes | parted ---pretend-input-tty /dev/sda resizepart 1 {{ new_end }} unit "MiB" yes
+#   delegate_to: "{{ vm_ip_info }}"
+
+- name: "Expand the inner filesystem and reload the partition table"
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      resize2fs /dev/sda1
+      partprobe
+  delegate_to: "{{ vm_ip_info }}"
+  changed_when: true

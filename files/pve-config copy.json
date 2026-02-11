@@ -1,0 +1,23 @@
+[
+    {
+        "name": "dns1",
+        "mac": "BC:24:11:CF:A0:9E",
+        "nogeenproperty": "even negeren",
+        "tags": ["dns", "tftp"],
+        "notes": "This is intended to be a local dns"
+    },
+    {
+        "name": "dns2",
+        "mac": "BC:24:11:CF:A0:9F",
+        "tags": ["dns"],
+        "notes": "Redundant, second dns"
+    },
+    {
+        "name": "homeserver-lab",
+        "mac": "BC:24:11:CF:A0:A0",
+        "tags": ["homeserver"],
+        "memory": 4192,
+        "disksize": 16,
+        "notes": "Home server for lab environment"
+    }
+]

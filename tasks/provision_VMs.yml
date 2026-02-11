@@ -28,6 +28,7 @@
     body:
       net0: "model=virtio,bridge={{ default_bridge }},macaddr={{ vmmac | lower }}"
       tags: "{{ vmtags }}"
+      memory: "{{ vmmemory }}"
     validate_certs: false
   when: vmname not in active_vm_names and (vmvlan == omit)
 
@@ -41,6 +42,7 @@
     body:
       net0: "model=virtio,bridge={{ default_bridge }},tags={{ vmvlan }},macaddr={{ vmmac | lower }}"
       tags: "{{ vmtags }}"
+      memory: "{{ vmmemory }}"
     validate_certs: false
   when: vmname not in active_vm_names and (vmvlan != omit)
 
@@ -80,3 +82,7 @@
     node: "{{ ansible_facts['hostname'] }}"
     vmid: "{{ clone_info.proxmox_vms[0].vmid }}"
     state: started
+
+- name: "Include tasks to resize partition if needed"
+  ansible.builtin.include_tasks: provision_resize.yml
+  when: (clone_info.proxmox_vms[0].maxdisk | int) < (vmdisk | int * 1024 * 1024 * 1024)

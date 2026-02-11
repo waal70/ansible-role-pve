@@ -56,9 +56,10 @@
   vars:
     _query: 'proxmox_vms[*].network[?name!=`lo`]."ip-addresses"[*]."ip-address"'
 
-- name: "Add the newly created VM to the ansible inventory"
+- name: "Temporarily add the template VM to the ansible inventory. Use the install-key"
   ansible.builtin.add_host:
     hostname: "{{ vm_ip_info }}"
+    ansible_ssh_private_key_file: "{{ install_key }}"
 
 - name: "Manipulate the VM to get rid of the machine-id"
   ansible.builtin.command:

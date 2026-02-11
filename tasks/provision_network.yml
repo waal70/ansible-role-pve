@@ -25,11 +25,6 @@
     bridge_needs_update: "{{ (node_default_bridge[0].bridge_vids != requested_vlans) | default(true) }}"
   when: node_default_bridge | length != 0
 
-- name: "Corner case: no VLANs were ever needed, default bridge will hold '2-4094'"
-  ansible.builtin.set_fact:
-    bridge_needs_update: false
-  when: node_default_bridge[0].bridge_vids == '2-4094'
-
 - name: "Update default bridge"
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/network/{{ default_bridge }}"

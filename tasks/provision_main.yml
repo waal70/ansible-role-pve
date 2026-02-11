@@ -15,6 +15,15 @@
   ansible.builtin.set_fact:
     requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | unique | sort | join(' ') }}"
 
+- name: Set the requested VLANs in case there are no VLANs requested
+  ansible.builtin.set_fact:
+    requested_vlans: "2-4094"
+  when: requested_vlans == ''
+
+- name: Debug requested
+  ansible.builtin.debug:
+    msg: "requested vlans: -{{ requested_vlans }}- end of string"
+
 - name: "To manipulate proxmox, we will need the python proxmoxer module"
   ansible.builtin.apt:
     name:

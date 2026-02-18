@@ -14,7 +14,7 @@
 
 - name: "Read the configuration file, skipping if none found"
   ansible.builtin.set_fact:
-    pve_config: "{{ lookup('file', item) }}"
+    pve_config: "{{ lookup('file', item) | from_json }}"
   with_first_found:
     files:
       - "{{ private_repo }}/inventory/{{ ansible_facts['hostname'] }}-config.json"
@@ -22,7 +22,7 @@
 
 - name: Set the requested VLANs into a fact
   ansible.builtin.set_fact:
-    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | default('') | flatten | unique | sort | join(' ') }}"
+    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | default(['']) | flatten | unique | sort | join(' ') }}"
 
 - name: Set the requested VLANs in case there are no VLANs requested
   ansible.builtin.set_fact:

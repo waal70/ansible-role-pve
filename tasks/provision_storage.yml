@@ -49,7 +49,6 @@
     api_token_id: "{{ api_token_id | default(omit) }}"
     api_token_secret: "{{ api_token | default(omit) }}"
   register: storage_info
-  when: nvme_present
 
 - name: "Check if the requested storage is already listed as storage"
   ansible.builtin.set_fact:

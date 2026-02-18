@@ -12,13 +12,17 @@
 # versions off of.
 # If your hostname is "pve1", it will expect a pve1-config.json
 
-- name: "Read the configuration file"
+- name: "Read the configuration file, skipping if none found"
   ansible.builtin.set_fact:
-    pve_config: "{{ lookup('file', private_repo ~ '/inventory/' ~ ansible_facts['hostname'] ~ '-config.json') | from_json }}"
+    pve_config: "{{ lookup('file', item) }}"
+  with_first_found:
+    files:
+      - "{{ private_repo }}/inventory/{{ ansible_facts['hostname'] }}-config.json"
+    skip: true
 
 - name: Set the requested VLANs into a fact
   ansible.builtin.set_fact:
-    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | flatten | unique | sort | join(' ') }}"
+    requested_vlans: "{{ pve_config | community.general.json_query('[*].vlan') | default('') | flatten | unique | sort | join(' ') }}"
 
 - name: Set the requested VLANs in case there are no VLANs requested
   ansible.builtin.set_fact:
@@ -105,4 +109,4 @@
     vmtags: "{{ item.tags | default(['notags']) }}"
     vmmemory: "{{ item.memory | default(2048) }}"
   with_items:
-    - "{{ pve_config }}"
+    - "{{ pve_config | default([]) }}"

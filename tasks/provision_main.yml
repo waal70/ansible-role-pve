@@ -7,9 +7,14 @@
         - "{{ private_repo }}/{{ ansible_vault }}/{{ ansible_role_name }}-vars.yml"
       skip: true
 
+# Andre February 2026: in a multi-node cluster, the config.json should be per node
+# Also moved this definition to the 'secret' repo. An example is left to base your
+# versions off of.
+# If your hostname is "pve1", it will expect a pve1-config.json
+
 - name: "Read the configuration file"
   ansible.builtin.set_fact:
-    pve_config: "{{ lookup('file', 'pve-config.json') | from_json }}"
+    pve_config: "{{ lookup('file', private_repo ~ '/inventory/' ~ ansible_facts['hostname'] ~ '-config.json') | from_json }}"
 
 - name: Set the requested VLANs into a fact
   ansible.builtin.set_fact:
@@ -19,10 +24,6 @@
   ansible.builtin.set_fact:
     requested_vlans: "2-4094"
   when: requested_vlans == ''
-
-- name: Debug requested
-  ansible.builtin.debug:
-    msg: "requested vlans: -{{ requested_vlans }}- end of string"
 
 - name: "To manipulate proxmox, we will need the python proxmoxer module"
   ansible.builtin.apt:
@@ -73,21 +74,12 @@
 - name: "Include tasks to set up networking"
   ansible.builtin.include_tasks: provision_network.yml
 
+- name: "Include tasks to set up storage"
+  ansible.builtin.include_tasks: provision_storage.yml
+
 - name: "Include the tasks that will create a template VM, but only if none were found"
   ansible.builtin.include_tasks: provision_templatevm.yml
   when: not template_present
-
-- name: "Now storage, back to Ansible modules"
-  community.proxmox.proxmox_storage_info:
-    api_host: "{{ ansible_facts['hostname'] }}"
-    api_user: "{{ api_user }}"
-    api_token_id: "{{ api_token_id | default(omit) }}"
-    api_token_secret: "{{ api_token | default(omit) }}"
-  register: proxmox_storages
-
-- name: Debug
-  ansible.builtin.debug:
-    var: proxmox_storages
 
 - name: "Retrieve information on all VMs in Proxmox"
   community.proxmox.proxmox_vm_info:

@@ -1,0 +1,88 @@
+---
+# If the system has an NVME-drive, I will use that for VM-storage.
+# If there is no NVME-drive present, I will use the main disk for (directory) storage.
+
+- name: "Check if the system has an NVME-drive and set the flag accordingly"
+  ansible.builtin.set_fact:
+    nvme_name_os: "/dev/{{ ansible_facts['devices'] | community.general.json_query(device_query) | first | default() }}"
+    nvme_present: "{{ ansible_facts['devices'] | community.general.json_query(device_query) | length > 0 }}"
+  vars:
+    device_query: "keys(@)[?contains(@, 'nvme')]"
+
+- name: "Retrieve requested/expected storage from API"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/disks/{{ nvme_storage_type }}"
+    method: GET
+    headers:
+      Authorization: "{{ authstring }}"
+    validate_certs: false
+  register: pool_info
+  when: nvme_present
+
+- name: "Create requested storage, should the previous call return an empty result"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/disks/{{ nvme_storage_type }}"
+    method: POST
+    headers:
+      Authorization: "{{ authstring }}"
+    body_format: json
+    body:
+      device: "{{ nvme_name_os }}"
+      name: "{{ nvme_storage_name }}"
+      add_storage: true
+    validate_certs: false
+  register: create_result
+  when:
+    - nvme_present
+    - pool_info.json.data == []
+
+- name: Allow a minute for storage creation
+  ansible.builtin.wait_for:
+    timeout: 60
+  delegate_to: localhost
+  when: create_result.status | default(0) == 200
+
+- name: "Retrieve storage info from PVE"
+  community.proxmox.proxmox_storage_info:
+    api_host: "{{ ansible_facts['hostname'] }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+  register: storage_info
+  when: nvme_present
+
+- name: "Check if the requested storage is already listed as storage"
+  ansible.builtin.set_fact:
+    nvme_name_pve: "{{ storage_info.proxmox_storages | community.general.json_query(nvme_query) }}"
+  vars:
+    nvme_query: "[?storage=='{{ nvme_storage_name }}']"
+
+# Depending on storage type, some body fields become mandatory.
+# For now, assume a thinpool
+- name: "Assign the storage to the cluster"
+  ansible.builtin.uri:
+    url: "{{ proxmox_api }}storage"
+    method: POST
+    headers:
+      Authorization: "{{ authstring }}"
+    body_format: json
+    body:
+      storage: "{{ nvme_storage_name }}"
+      type: "{{ nvme_storage_type }}"
+      nodes: ["{{ ansible_facts['hostname'] }}"]
+      thinpool: "{{ nvme_storage_name }}"
+      vgname: "{{ nvme_storage_name }}"
+    validate_certs: false
+  when:
+    - nvme_present
+    - nvme_name_pve == []
+
+- name: "Set the storage string for use later on in this role"
+  ansible.builtin.set_fact:
+    storage_string: 'local:16,format=qcow2'
+  when: not nvme_present
+
+- name: "Set the storage string for use later on in this role"
+  ansible.builtin.set_fact:
+    storage_string: '{{ nvme_storage_name }}:16,format=raw'
+  when: nvme_present

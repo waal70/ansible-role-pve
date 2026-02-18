@@ -1,5 +1,5 @@
 ---
-- name: "Now create the template VM on the local storage if it does not exist"
+- name: "Now create the template VM on the requested storage if it does not exist"
   community.proxmox.proxmox_kvm:
     api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
@@ -9,7 +9,7 @@
     name: "{{ template_vm }}"
     description: "template debian server"
     scsi:
-      scsi0: 'local:8,format=qcow2'
+      scsi0: "{{ storage_string }}"
     scsihw: "virtio-scsi-single"
     net:
       net0: 'model=virtio,bridge={{ default_bridge }}'

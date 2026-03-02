@@ -2,12 +2,10 @@
 # If the system has an NVME-drive, I will use that for VM-storage.
 # If there is no NVME-drive present, I will use the main disk for (directory) storage.
 
-- name: "Check if the system has an NVME-drive and set the flag accordingly"
+- name: "Check if the system has an NVME-drive and set the flag accordingly. Detect NVMe drives safely (no JMESPath)"
   ansible.builtin.set_fact:
-    nvme_name_os: "/dev/{{ ansible_facts['devices'] | community.general.json_query(device_query) | first | default() }}"
-    nvme_present: "{{ ansible_facts['devices'] | community.general.json_query(device_query) | length > 0 }}"
-  vars:
-    device_query: "keys(@)[?contains(@, 'nvme')]"
+    nvme_present: "{{ (ansible_facts.devices | dict2items | selectattr('key', 'match', '^nvme') | list) | length > 0 }}"
+    nvme_name_os: "{{ '/dev/' + (ansible_facts.devices | dict2items | selectattr('key', 'match', '^nvme') | first | default({})).key | default('') }}"
 
 - name: "Retrieve requested/expected storage from API"
   ansible.builtin.uri:

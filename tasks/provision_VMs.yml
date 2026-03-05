@@ -40,7 +40,7 @@
       Authorization: "{{ authstring }}"
     body_format: json
     body:
-      net0: "model=virtio,bridge={{ default_bridge }},tags={{ vmvlan }},macaddr={{ vmmac | lower }}"
+      net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }},macaddr={{ vmmac | lower }}"
       tags: "{{ vmtags }}"
       memory: "{{ vmmemory }}"
     validate_certs: false

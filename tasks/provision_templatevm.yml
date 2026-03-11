@@ -20,9 +20,9 @@
     onboot: true
     state: present
 
-- name: "Sleep for 5 seconds to give PVE time to process VM creation"
+- name: "Sleep a little to give PVE time to process VM creation"
   ansible.builtin.wait_for:
-    timeout: 5
+    timeout: 30
   delegate_to: localhost
   become: false
 

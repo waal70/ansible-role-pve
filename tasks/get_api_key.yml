@@ -31,3 +31,47 @@
 - name: Set the token in fact for this session
   ansible.builtin.set_fact:
     api_token: "{{ token_response.value }}"
+
+- name: Test for existence of inventory token for use in Ansible yml-files
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      pveum user token list {{ api_user }} | grep {{ api_token_id_inv }}
+    executable: /bin/bash
+  register: inventorytokenlist
+  failed_when: false
+  changed_when: inventorytokenlist.rc == 0
+
+- name: Block for creation and templating of inventory plugin token
+  when: inventorytokenlist.rc == 1 # Return code 1 means the token was not found
+  block:
+    - name: Create new Proxmox API inventory token for use with ansible inventory plugin
+      ansible.builtin.command: "pveum user token add {{ api_user }} {{  api_token_id_inv }} --privsep=no --comment='Inventory plugin token' --output-format json" # noqa: yaml[line-length]
+      register: api_inv_token_response
+      changed_when: api_inv_token_response.rc == 0
+
+    - name: Set the value of the token into a fact
+      ansible.builtin.set_fact:
+        pve_token_secret: "{{ api_inv_token_response.stdout | from_json }}"
+        pve_ip: "{{ ansible_facts['default_ipv4'].address }}"
+      no_log: true
+
+    - name: Template out the inventory yaml, including the token
+      ansible.builtin.template:
+        src: inv.proxmox.yml.j2
+        dest: "{{ inventory_dir }}/{{ inventory_hostname }}.proxmox.yml"
+        mode: '0755'
+        owner: "{{ interactive_user }}"
+        group: "{{ interactive_user }}"
+      delegate_to: localhost
+
+    - name: Inform the user
+      ansible.builtin.debug:
+        msg: "An inventory plugin file was written to: {{ inventory_dir }}/{{ inventory_hostname }}.proxmox.yml"
+# END BLOCK
+
+- name: Tell the user in case there should already be a inventory plugin file
+  ansible.builtin.debug:
+    msg:
+      - "An inventory key was already found. You should have {{ inventory_dir }}/{{ inventory_hostname }}.proxmox.yml"
+      - "Should you wish to create a new file, please (manually) delete the API key '{{ api_token_id_inv }}' on {{ inventory_hostname }}"

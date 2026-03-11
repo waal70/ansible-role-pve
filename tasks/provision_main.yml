@@ -110,3 +110,7 @@
     vmmemory: "{{ item.memory | default(2048) }}"
   with_items:
     - "{{ pve_config | default([]) }}"
+
+# Andre March 2026: refresh the inventory after provisioning
+- name: "Refresh the Ansible inventory, because we may have introduced new machines"
+  ansible.builtin.meta: refresh_inventory

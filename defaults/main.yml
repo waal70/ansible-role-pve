@@ -17,6 +17,10 @@ pve_slim: true
 api_user: "root@pam"
 api_token_id: "ansible"
 api_token: "inputtokenhere"
+
+api_token_id_inv: "inv_ansible"
+api_token_inv: "inventorytoken"
+
 authstring: "PVEAPIToken={{ api_user }}!{{ api_token_id }}={{ api_token }}"
 proxmox_api: "https://{{ ansible_facts['hostname'] }}:8006/api2/json/"
 template_vm: "default-debian"

@@ -1,0 +1,16 @@
+plugin: "community.proxmox.proxmox"
+url: https://{{ pve_ip }}:8006/
+user: root@pam
+token_id: {{ api_token_id_inv }}
+token_secret: {{ pve_token_secret.value }}
+want_facts: true
+keyed_groups:
+  - key: proxmox_tags_parsed
+    separator: ""
+# This will also target the proxmox nodes themselves
+# Leave set to true if you want automatic provisioning of VMs
+want_proxmox_nodes_ansible_host: true
+# Requires python3-netaddr!
+compose:
+  ansible_host: proxmox_agent_interfaces[1]["ip-addresses"][0] | ansible.utils.ipaddr("address")
+validate_certs: false

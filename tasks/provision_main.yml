@@ -29,12 +29,22 @@
     requested_vlans: "2-4094"
   when: requested_vlans == ''
 
-- name: "To manipulate proxmox, we will need the a couple of pre-reqs module"
+- name: "To manipulate proxmox, we will need the a couple of pre-reqs module on the target..."
   ansible.builtin.apt:
     name:
       - python3-proxmoxer
       - python3-netaddr
     state: present
+
+- name: "...and also on the ansible control node"
+  ansible.builtin.apt:
+    name:
+      - python3-proxmoxer
+      - python3-netaddr
+      - python3-requests
+    state: present
+  delegate_to: localhost
+
 
 - name: "List existing nodes in the proxmox cluster"
   community.proxmox.proxmox_node_info:

@@ -76,6 +76,7 @@
     - name: Reboot after pve-kernel install # noqa: no-handler
       ansible.builtin.reboot:
         msg: Mandatory reboot after pve-kernel install
+        post_reboot_delay: 30
       when: default_kernel.changed
 
     - name: Identify packages required for Proxmox install

@@ -77,6 +77,8 @@
       ansible.builtin.reboot:
         msg: Mandatory reboot after pve-kernel install
         post_reboot_delay: 30
+        reboot_timeout: 180
+        test_command: "touch /tmp/rebooted"
       when: default_kernel.changed
 
     - name: Identify packages required for Proxmox install

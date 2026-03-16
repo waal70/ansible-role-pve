@@ -46,9 +46,29 @@
     node: "{{ ansible_facts['hostname'] }}"
     network: true
     name: "{{ template_vm }}"
-  register: info_ret
+  register: info_ret0
   retries: 20
   delay: 30
+  until: not info_ret0.failed and (info_ret0.proxmox_vms | length > 0)
+
+- name: "Previous task indicated creation succesfull. Introduce a small wait to have it properly get an IP-address through DHCP"
+  ansible.builtin.wait_for:
+    timeout: 15
+  delegate_to: localhost
+  become: false
+
+- name: "Again retrieve information about the newly created VM"
+  community.proxmox.proxmox_vm_info:
+    api_host: "{{ ansible_facts['hostname'] }}"
+    api_user: "{{ api_user }}"
+    api_token_id: "{{ api_token_id | default(omit) }}"
+    api_token_secret: "{{ api_token | default(omit) }}"
+    node: "{{ ansible_facts['hostname'] }}"
+    network: true
+    name: "{{ template_vm }}"
+  register: info_ret
+  retries: 20
+  delay: 5
   until: not info_ret.failed and (info_ret.proxmox_vms | length > 0)
 
 - name: Get the VM's IP into a variable

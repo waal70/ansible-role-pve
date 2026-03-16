@@ -1,5 +1,6 @@
 ---
-- name: "Retrieve information about the newly created VM, allowing up to 10 minutes for full provision"
+# Re-request vm-info, now including network settings
+- name: "Retrieve information about the newly started VM, allowing time for network to become ready"
   community.proxmox.proxmox_vm_info:
     api_host: "{{ ansible_facts['hostname'] }}"
     api_user: "{{ api_user }}"
@@ -12,8 +13,9 @@
   retries: 20
   delay: 5
   until:
-    - info_ret.status == "running"
+    - not info_ret.failed
     - info_ret.proxmox_vms | length > 0
+    - info_ret.proxmox_vms[0].status | default('unknown') == "running"
 
 - name: Get the VM's IP into a variable
   ansible.builtin.set_fact:

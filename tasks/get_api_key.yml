@@ -24,10 +24,6 @@
   ansible.builtin.set_fact:
     token_response: "{{ api_token_response.stdout | from_json }}"
 
-- name: Debug encrypted token value (for verification)
-  ansible.builtin.debug:
-    var: token_response
-
 - name: Set the token in fact for this session
   ansible.builtin.set_fact:
     api_token: "{{ token_response.value }}"
@@ -65,7 +61,7 @@
         group: "{{ interactive_user }}"
       delegate_to: localhost
 
-    - name: Inform the user
+    - name: Inform the user fo the creation of the inventory file
       ansible.builtin.debug:
         msg: "An inventory plugin file was written to: {{ inventory_dir }}/{{ inventory_hostname }}.proxmox.yml"
 # END BLOCK

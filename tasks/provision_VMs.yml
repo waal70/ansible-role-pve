@@ -30,10 +30,6 @@
     - not clone_info.failed
     - clone_info.proxmox_vms | length > 0
 
-- name: Debug clone_info
-  ansible.builtin.debug:
-    var: clone_info
-
 - name: "Set fact for current VMid"
   ansible.builtin.set_fact:
     current_vmid: "{{ clone_info.proxmox_vms[0].vmid }}"

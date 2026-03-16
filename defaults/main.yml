@@ -26,7 +26,11 @@ proxmox_api: "https://{{ ansible_facts['hostname'] }}:8006/api2/json/"
 template_vm: "default-debian"
 default_bridge: "vmbr0"
 bridge_needs_update: false
-vlan_base: "172.16."
+# override this in private_repo waal70.pve-vars.yml
+# vlan_base should contain the first two octets of your LAN, ending with a period (.)
+# So if your LAN is 192.168.1.0/24, it should contain "192.168."
+# TODO: find out programmatically what the VLAN base should be
+vlan_base: "192.168."
 vlan_base_netmask: "255.255.255.0"
 
 nvme_storage_name: "vmdata"

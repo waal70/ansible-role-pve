@@ -72,14 +72,10 @@
         name: proxmox-default-kernel
         state: present
       register: default_kernel
+      notify: Restart PVE machine
 
-    - name: Reboot after pve-kernel install # noqa: no-handler
-      ansible.builtin.reboot:
-        msg: Mandatory reboot after pve-kernel install
-        post_reboot_delay: 30
-        reboot_timeout: 180
-        test_command: "touch /tmp/rebooted"
-      when: default_kernel.changed
+    - name: Flush handlers now because a restart needs to take place right after kernel install
+      ansible.builtin.meta: flush_handlers
 
     - name: Identify packages required for Proxmox install
       ansible.builtin.import_tasks: identify_needed_packages.yml

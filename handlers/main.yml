@@ -24,3 +24,10 @@
   ansible.builtin.systemd_service:
     name: rrdcached
     state: restarted
+
+# PVE requires some exotic settings, as the PVE-kernel does not support boottime ansible-style
+- name: Restart PVE machine
+  ansible.builtin.reboot:
+    post_reboot_delay: 45
+    reboot_timeout: 90
+    boot_time_command: "who -b"

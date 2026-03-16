@@ -18,7 +18,8 @@
   ansible.builtin.debug:
     msg: "Assigned MAC address for {{ vmname }} is: {{ vmmac | lower }}"
 
-- name: "Edit the via API to set network settings"
+# Andre 2026-03: ALWAYS run this. Memory, VLAN or cores may have changed
+- name: "Edit the VM's config via the API to set network settings"
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/qemu/{{ clone_result.vmid }}/config"
     method: PUT
@@ -29,8 +30,10 @@
       net0: "model=virtio,bridge={{ default_bridge }},macaddr={{ vmmac | lower }}"
       tags: "{{ vmtags }}"
       memory: "{{ vmmemory }}"
+      cores: "{{ vmcores }}"
+      description: "{{ vmnotes }}"
     validate_certs: false
-  when: vmname not in active_vm_names and (vmvlan == omit)
+  when: vmvlan == omit
 
 - name: "Edit the via API to set network settings, including VLAN"
   ansible.builtin.uri:
@@ -43,9 +46,10 @@
       net0: "model=virtio,bridge={{ default_bridge }},tag={{ vmvlan }},macaddr={{ vmmac | lower }}"
       tags: "{{ vmtags }}"
       memory: "{{ vmmemory }}"
+      cores: "{{ vmcores }}"
+      description: "{{ vmnotes }}"
     validate_certs: false
-  when: vmname not in active_vm_names and (vmvlan != omit)
-
+  when: vmvlan != omit
 
 - name: "Retrieve info for this VM"
   community.proxmox.proxmox_vm_info:
@@ -60,7 +64,7 @@
   delay: 2
   until: clone_info.proxmox_vms | length > 0
 
-- name: "Edit via API if disk needs resizing"
+- name: "Edit the VM via API, should the disk needs resizing. Only increasing size is supported."
   ansible.builtin.uri:
     url: "{{ proxmox_api }}nodes/{{ ansible_facts['hostname'] }}/qemu/{{ clone_info.proxmox_vms[0].vmid }}/resize"
     method: PUT
@@ -81,8 +85,8 @@
     api_token_secret: "{{ api_token | default(omit) }}"
     node: "{{ ansible_facts['hostname'] }}"
     vmid: "{{ clone_info.proxmox_vms[0].vmid }}"
-    state: started
+    state: restarted
 
-- name: "Include tasks to resize partition if needed"
+- name: "Include tasks to resize partition inside the VM if needed"
   ansible.builtin.include_tasks: provision_resize.yml
   when: (clone_info.proxmox_vms[0].maxdisk | int) < (vmdisk | int * 1024 * 1024 * 1024)

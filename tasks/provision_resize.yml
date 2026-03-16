@@ -11,7 +11,9 @@
   register: info_ret
   retries: 20
   delay: 5
-  until: not info_ret.failed and (info_ret.proxmox_vms | length > 0)
+  until:
+    - info_ret.status == "running"
+    - info_ret.proxmox_vms | length > 0
 
 - name: Get the VM's IP into a variable
   ansible.builtin.set_fact:
@@ -19,7 +21,7 @@
   vars:
     _query: 'proxmox_vms[*].network[?name!=`lo`]."ip-addresses"[*]."ip-address"'
 
-- name: "Temporarily add the template VM to the ansible inventory. Use the install-key"
+- name: "Temporarily add the template VM to the ansible inventory. Use the SSH-key from preseed for access"
   ansible.builtin.add_host:
     hostname: "{{ vm_ip_info }}"
     ansible_ssh_private_key_file: "{{ install_key }}"

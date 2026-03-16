@@ -79,7 +79,7 @@
 - name: "Include tasks to set up networking"
   ansible.builtin.include_tasks: provision_network.yml
 
-- name: "Include tasks to set up storage"
+- name: "Include tasks to set up storage for the PVE machine. VM storage is later."
   ansible.builtin.include_tasks: provision_storage.yml
 
 - name: "Include the tasks that will create a template VM, but only if none were found"
@@ -109,6 +109,7 @@
     vmmac: "{{ item.mac | default(mac_prefix | community.general.random_mac(seed=item.name)) }}"
     vmtags: "{{ item.tags | default(['notags']) }}"
     vmmemory: "{{ item.memory | default(2048) }}"
+    vmcores: "{{ item.cores | default(1) }}"
   with_items:
     - "{{ pve_config | default([]) }}"
 

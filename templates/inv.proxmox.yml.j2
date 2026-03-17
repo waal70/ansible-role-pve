@@ -11,6 +11,7 @@ keyed_groups:
 # Leave set to true if you want automatic provisioning of VMs
 want_proxmox_nodes_ansible_host: true
 # Requires python3-netaddr!
+# Also requires ansible-galaxy collection install ansible.utils
 compose:
   ansible_host: proxmox_agent_interfaces[1]["ip-addresses"][0] | ansible.utils.ipaddr("address")
 validate_certs: false
